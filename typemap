@@ -1,0 +1,4 @@
+TYPEMAP
+RabbitMQ          T_PTROBJ
+RabbitMQ::Channel T_PTROBJ
+RabbitMQ::Queue   T_PTROBJ
