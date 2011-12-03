@@ -1,4 +1,11 @@
 TYPEMAP
-RabbitMQ          T_PTROBJ
-RabbitMQ::Channel T_PTROBJ
-RabbitMQ::Queue   T_PTROBJ
+RabbitMQ*	T_RABBITMQ
+
+INPUT
+T_RABBITMQ
+  $var = INT2PTR(RabbitMQ *, SvROK($arg) ? SvIV((SV *) SvRV($arg)) : SvIV($arg));
+#  $var = (RabbitMQ *) mg_find(SvRV($arg), PERL_MAGIC_ext)->mg_obj;
+
+OUTPUT
+T_RABBITMQ
+  sv_setref_pv($arg, \"RabbitMQ\", (void *) $var);

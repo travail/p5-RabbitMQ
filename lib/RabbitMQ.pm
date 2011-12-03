@@ -10,6 +10,12 @@ our $VERSION = '0.01';
 require XSLoader;
 XSLoader::load('RabbitMQ', $VERSION);
 
+sub new {
+    my ( $class, $args ) = @_;
+
+    return $class->xs_new();
+}
+
 1;
 __END__
 
@@ -33,6 +39,8 @@ Blah blah blah.
 =head1 METHODS
 
 =head2 new
+
+=head2 xs_new
 
 =head2 connect
 

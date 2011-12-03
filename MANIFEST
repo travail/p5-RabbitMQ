@@ -2,15 +2,13 @@ Changes
 lib/RabbitMQ.pm
 Makefile.PL
 MANIFEST			This list of files
-MYMETA.json
-MYMETA.yml
 ppport.h
-RabbitMQ.c
+rabbitmq.c
+rabbitmq.h
 RabbitMQ.xs
 README
 t/00.load.t
 t/01.connect.t
 t/pod-coverage.t
 t/pod.t
-t/RabbitMQ.t
 typemap

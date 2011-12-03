@@ -1,7 +1,7 @@
-use Test::More tests => 1;
+use Test::More;
 
 BEGIN {
-use_ok( 'RabbitMQ' );
+    use_ok('RabbitMQ');
 }
 
-diag( "Testing RabbitMQ $RabbitMQ::VERSION" );
+done_testing;
