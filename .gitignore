@@ -1,6 +1,7 @@
 blib*
 Makefile
 Makefile.old
+MYMETA.*
 Build
 Build.bat
 _build*
@@ -9,8 +10,9 @@ pm_to_blib*
 .lwpcookies
 cover_db
 pod2htm*.tmp
-Catalyst-Helper-Init-*
 *.bak
 *.o
 *.so
 *~
+*.bs
+RabbitMQ.c
