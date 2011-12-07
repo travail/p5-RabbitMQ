@@ -217,88 +217,101 @@ PREINIT:
   STRLEN len;
   amqp_basic_properties_t properties;
   int    result;
-  char  *exchange;
+  char  *exchange = "amq.direct";
   char  *routingkey;
   char  *body;
-  HV    *props;
+  amqp_bytes_t exchange_b;
+  amqp_bytes_t routingkey_b;
+  amqp_bytes_t body_b;
+  HV    *props = NULL;
   amqp_boolean_t mandatory = 0;
   amqp_boolean_t immediate = 0;
-  SV   **sv_props;
+  SV   **svp_props;
   SV   **svp;
-  char  *content_type;
 CODE:
 {
-  if ((svp = hv_fetch(args, "exchange", 8, 1)) != NULL)
+  if ((svp = hv_fetch(args, "exchange", 8, 0)) != NULL) {
     exchange = SvPV(*svp, len);
-  if ((svp = hv_fetch(args, "routingkey", 10, 1)) != NULL)
+    exchange_b.bytes = exchange;
+    exchange_b.len   = len;
+  }
+  if ((svp = hv_fetch(args, "routingkey", 10, 0)) != NULL) {
     routingkey = SvPV(*svp, len);
-  if ((svp = hv_fetch(args, "body", 4, 1)) != NULL)
+    routingkey_b.bytes = routingkey;
+    routingkey_b.len   = len;
+  }
+  if ((svp = hv_fetch(args, "body", 4, 0)) != NULL) {
     body = SvPV(*svp, len);
+    body_b.bytes = body;
+    body_b.len   = len;
+  }
   if ((svp = hv_fetch(args, "mandatory", 9, 0)) != NULL)
     mandatory = (amqp_boolean_t) SvIV(*svp);
   if ((svp = hv_fetch(args, "immediate", 9, 0)) != NULL)
     immediate = (amqp_boolean_t) SvIV(*svp);
 
-  sv_props = hv_fetch(args, "props", 5, 0);
-  if (SvROK(*sv_props) && SvTYPE(SvRV(*sv_props)) == SVt_PVHV)
-    props = (HV *) SvRV(*sv_props);
+  if (hv_exists(args, "props", 5)) {
+    svp_props = hv_fetch(args, "props", 5, 0);
+    if (SvROK(*svp_props) && SvTYPE(SvRV(*svp_props)) == SVt_PVHV)
+      props = (HV *) SvRV(*svp_props);
+  }
 
   properties.headers = AMQP_EMPTY_TABLE;
   properties._flags  = 0;
   if (props) {
-    if ((sv_props = hv_fetch(props, "content_type", 12, 0)) != NULL) {
-      properties.content_type = amqp_cstring_bytes(SvPV(*sv_props, len));
+    if ((svp_props = hv_fetch(props, "content_type", 12, 0)) != NULL) {
+      properties.content_type = amqp_cstring_bytes(SvPV(*svp_props, len));
       properties._flags |= AMQP_BASIC_CONTENT_TYPE_FLAG;
     }
-    if ((sv_props = hv_fetch(props, "content_encoding", 16, 0)) != NULL) {
-      properties.content_encoding = amqp_cstring_bytes(SvPV(*sv_props, len));
+    if ((svp_props = hv_fetch(props, "content_encoding", 16, 0)) != NULL) {
+      properties.content_encoding = amqp_cstring_bytes(SvPV(*svp_props, len));
       properties._flags |= AMQP_BASIC_CONTENT_ENCODING_FLAG;
     }
-    if ((sv_props = hv_fetch(props, "correlation_id", 14, 0)) != NULL) {
-      properties.correlation_id = amqp_cstring_bytes(SvPV(*sv_props, len));
+    if ((svp_props = hv_fetch(props, "correlation_id", 14, 0)) != NULL) {
+      properties.correlation_id = amqp_cstring_bytes(SvPV(*svp_props, len));
       properties._flags |= AMQP_BASIC_CORRELATION_ID_FLAG;
     }
-    if ((sv_props = hv_fetch(props, "reply_to", 8, 0)) != NULL) {
-      properties.reply_to = amqp_cstring_bytes(SvPV(*sv_props, len));
+    if ((svp_props = hv_fetch(props, "reply_to", 8, 0)) != NULL) {
+      properties.reply_to = amqp_cstring_bytes(SvPV(*svp_props, len));
       properties._flags |= AMQP_BASIC_REPLY_TO_FLAG;
     }
-    if ((sv_props = hv_fetch(props, "expiration", 10, 0)) != NULL) {
-      properties.expiration = amqp_cstring_bytes(SvPV(*sv_props, len));
+    if ((svp_props = hv_fetch(props, "expiration", 10, 0)) != NULL) {
+      properties.expiration = amqp_cstring_bytes(SvPV(*svp_props, len));
       properties._flags |= AMQP_BASIC_EXPIRATION_FLAG;
     }
-    if ((sv_props = hv_fetch(props, "message_id", 10, 0)) != NULL) {
-      properties.message_id = amqp_cstring_bytes(SvPV(*sv_props, len));
+    if ((svp_props = hv_fetch(props, "message_id", 10, 0)) != NULL) {
+      properties.message_id = amqp_cstring_bytes(SvPV(*svp_props, len));
       properties._flags |= AMQP_BASIC_MESSAGE_ID_FLAG;
     }
-    if ((sv_props = hv_fetch(props, "type", 4, 0)) != NULL) {
-      properties.type = amqp_cstring_bytes(SvPV(*sv_props, len));
+    if ((svp_props = hv_fetch(props, "type", 4, 0)) != NULL) {
+      properties.type = amqp_cstring_bytes(SvPV(*svp_props, len));
       properties._flags |= AMQP_BASIC_TYPE_FLAG;
     }
-    if ((sv_props = hv_fetch(props, "user_id", 7, 0)) != NULL) {
-      properties.user_id = amqp_cstring_bytes(SvPV(*sv_props, len));
+    if ((svp_props = hv_fetch(props, "user_id", 7, 0)) != NULL) {
+      properties.user_id = amqp_cstring_bytes(SvPV(*svp_props, len));
       properties._flags |= AMQP_BASIC_USER_ID_FLAG;
     }
-    if ((sv_props = hv_fetch(props, "app_id", 6, 0)) != NULL) {
-      properties.app_id = amqp_cstring_bytes(SvPV(*sv_props, len));
+    if ((svp_props = hv_fetch(props, "app_id", 6, 0)) != NULL) {
+      properties.app_id = amqp_cstring_bytes(SvPV(*svp_props, len));
       properties._flags |= AMQP_BASIC_APP_ID_FLAG;
     }
-    if ((sv_props = hv_fetch(props, "delivery_mode", 13, 0)) != NULL) {
-      properties.delivery_mode = (uint8_t) SvIV(*sv_props);
+    if ((svp_props = hv_fetch(props, "delivery_mode", 13, 0)) != NULL) {
+      properties.delivery_mode = (uint8_t) SvIV(*svp_props);
       properties._flags |= AMQP_BASIC_DELIVERY_MODE_FLAG;
     }
-    if ((sv_props = hv_fetch(props, "prioriry", 8, 0)) != NULL) {
-      properties.priority = (uint8_t) SvIV(*sv_props);
+    if ((svp_props = hv_fetch(props, "prioriry", 8, 0)) != NULL) {
+      properties.priority = (uint8_t) SvIV(*svp_props);
       properties._flags |= AMQP_BASIC_PRIORITY_FLAG;
     }
-    if ((sv_props = hv_fetch(props, "timestamp", 8, 0)) != NULL) {
-      properties.timestamp = (uint64_t) SvIV(*sv_props);
+    if ((svp_props = hv_fetch(props, "timestamp", 8, 0)) != NULL) {
+      properties.timestamp = (uint64_t) SvIV(*svp_props);
       properties._flags |= AMQP_BASIC_TIMESTAMP_FLAG;
     }
   }
 
-  result = amqp_basic_publish(ch->conn, ch->channel,
-                              amqp_cstring_bytes(exchange), amqp_cstring_bytes(routingkey),
-                              mandatory, immediate, &properties, amqp_cstring_bytes(body));
+  result = amqp_basic_publish(ch->conn, ch->channel, exchange_b, routingkey_b,
+                              (amqp_boolean_t) mandatory, (amqp_boolean_t) immediate,
+                              &properties, body_b);
   RETVAL = result;
 }
 OUTPUT:
