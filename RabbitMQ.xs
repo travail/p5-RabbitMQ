@@ -178,10 +178,10 @@ rabbitmq_queue_declare(channel, qname, opts = NULL)
 PREINIT:
   amqp_rpc_reply_t         rpc_reply;
   amqp_queue_declare_ok_t *queue_declare_ok;
-  int passive     = 0;
-  int durable     = 0;
-  int exclusive   = 0;
-  int auto_delete = 1;
+  amqp_boolean_t passive     = 0;
+  amqp_boolean_t durable     = 0;
+  amqp_boolean_t exclusive   = 0;
+  amqp_boolean_t auto_delete = 1;
   amqp_table_t args    = AMQP_EMPTY_TABLE;
   amqp_bytes_t qname_b = AMQP_EMPTY_BYTES;
   SV **svp;
@@ -190,13 +190,13 @@ CODE:
   if (qname && strcmp(qname, ""))
     qname_b = amqp_cstring_bytes(qname);
   if ((svp = hv_fetch(opts, "passive", 7, 0)) != NULL && SvIOK(*svp))
-    passive = SvIV(*svp);
+    passive = (amqp_boolean_t) SvIV(*svp);
   if ((svp = hv_fetch(opts, "durable", 7, 0)) != NULL && SvIOK(*svp))
-    durable = SvIV(*svp);
+    durable = (amqp_boolean_t) SvIV(*svp);
   if ((svp = hv_fetch(opts, "exclusive", 9, 0)) != NULL && SvIOK(*svp))
-    exclusive = SvIV(*svp);
+    exclusive = (amqp_boolean_t) SvIV(*svp);
   if ((svp = hv_fetch(opts, "auto_delete", 11, 1)) != NULL && SvIOK(*svp))
-    auto_delete = SvIV(*svp);
+    auto_delete = (amqp_boolean_t) SvIV(*svp);
 
   queue_declare_ok = amqp_queue_declare(channel->conn, channel->channel, qname_b,
                                         passive, durable, exclusive, auto_delete, args);
