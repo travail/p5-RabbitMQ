@@ -20,12 +20,13 @@ amqp_rpc_reply_t rabbitmq_login(amqp_connection_state_t conn, char *vhost,
 
 int rabbitmq_disconnect(RabbitMQ *mq)
 {
-  int res = 0;
+  int result;
   amqp_rpc_reply_t amqp_rpc_reply;
   amqp_rpc_reply = amqp_connection_close(mq->conn, AMQP_REPLY_SUCCESS);
-  if (amqp_rpc_reply.reply_type != AMQP_RESPONSE_NORMAL) {
+//  if (amqp_rpc_reply.reply_type != AMQP_RESPONSE_NORMAL) {
 //    Perl_croak(aTHX_ "Cannot disconnect");
-  }
-  amqp_destroy_connection(mq->conn);
-  return res;
+//  }
+  result = amqp_destroy_connection(mq->conn);
+  free(mq);
+  return result;
 }

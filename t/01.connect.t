@@ -1,5 +1,6 @@
 use Test::More;
-use RabbitMQ;
+
+use_ok('RabbitMQ');
 
 my $host     = '192.168.1.1';
 my $port     = 5672;

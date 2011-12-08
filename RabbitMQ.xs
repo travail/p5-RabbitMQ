@@ -44,7 +44,7 @@ PREINIT:
   int    max_channel = 0;
   int    max_frame   = 131072;
   int    heartbeat   = 0;
-  amqp_rpc_reply_t amqp_rpc_reply;
+  amqp_rpc_reply_t rpc_reply;
 CODE:
 {
   str_from_hv(args, host);
@@ -60,12 +60,12 @@ CODE:
   if (sockfd < 0)
     Perl_croak(aTHX_ "Cannot open socket");
   rabbitmq_set_sockfd(mq->conn, sockfd);
-  amqp_rpc_reply = rabbitmq_login(mq->conn, vhost, max_channel, max_frame,
+  rpc_reply = rabbitmq_login(mq->conn, vhost, max_channel, max_frame,
                                   heartbeat, AMQP_SASL_METHOD_PLAIN, user, password);
-  if (amqp_rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
+  if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
     Perl_croak(aTHX_ "Connot login to rabbitmq-server");
 
-  RETVAL = amqp_rpc_reply.reply_type;
+  RETVAL = rpc_reply.reply_type;
 }
 OUTPUT:
   RETVAL
@@ -79,24 +79,28 @@ rabbitmq_channel_open(mq, sv_ch)
   RabbitMQ *mq
   SV       *sv_ch
 PREINIT:
-  int ch;
-  amqp_rpc_reply_t  amqp_rpc_reply;
-  RabbitMQ_Channel *channel;
+  int channel = 0;
+  amqp_rpc_reply_t  rpc_reply;
+  RabbitMQ_Channel *ch;
 CODE:
 {
-  if (SvIOKp(sv_ch)) ch = SvIV(sv_ch);
-  else Perl_croak(aTHX_ "channel must be an integer");
+  if (SvIOKp(sv_ch)) channel = SvIV(sv_ch);
+  if (channel == 0)
+    Perl_croak(aTHX_ "Cannot open a channel");
 
-  amqp_channel_open(mq->conn, ch);
-  amqp_rpc_reply = amqp_get_rpc_reply(mq->conn);
-  if (amqp_rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Cannot open channel");
+  if (!amqp_channel_open(mq->conn, channel))
+    Perl_croak(aTHX_ "Cannot open a channel");
 
-  channel = Newxz(channel, sizeof(channel), RabbitMQ_Channel);
-  channel->conn    = mq->conn;
-  channel->channel = ch;
+  rpc_reply = amqp_get_rpc_reply(mq->conn);
+  if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL) {
+    Perl_croak(aTHX_ "Cannot open a channel");
+  } else {
+    ch = Newxz(ch, sizeof(ch), RabbitMQ_Channel);
+    ch->conn    = mq->conn;
+    ch->channel = channel;
+  }
 
-  RETVAL = channel;
+  RETVAL = ch;
 }
 OUTPUT:
   RETVAL
@@ -106,15 +110,14 @@ rabbitmq_channel_close(mq, channel)
   RabbitMQ *mq
   int channel
 PREINIT:
-  amqp_rpc_reply_t amqp_rpc_reply;
+  amqp_rpc_reply_t rpc_reply;
 CODE:
 {
-  amqp_channel_close(mq->conn, channel, AMQP_REPLY_SUCCESS);
-  amqp_rpc_reply = amqp_get_rpc_reply(mq->conn);
-  if (amqp_rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
+  rpc_reply = amqp_channel_close(mq->conn, channel, AMQP_REPLY_SUCCESS);
+  if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
     Perl_croak(aTHX_ "Cannot close channel");
 
-  RETVAL = amqp_rpc_reply.reply_type;
+  RETVAL = rpc_reply.reply_type;
 }
 OUTPUT:
   RETVAL
@@ -134,38 +137,38 @@ OUTPUT:
   RETVAL
 
 int
-rabbitmq_open(channel, ch)
-  RabbitMQ_Channel *channel
-  int ch
+rabbitmq_open(ch, channel)
+  RabbitMQ_Channel *ch
+  int channel
 PREINIT:
-  amqp_rpc_reply_t amqp_rpc_reply;
+  amqp_rpc_reply_t rpc_reply;
 CODE:
 {
-  amqp_channel_open(channel->conn, ch);
-  amqp_rpc_reply = amqp_get_rpc_reply(channel->conn);
-  if (amqp_rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
+  amqp_channel_open(ch->conn, channel);
+  rpc_reply = amqp_get_rpc_reply(ch->conn);
+  if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
     Perl_croak(aTHX_ "Cannot open channel");
 
-  channel->channel = ch;
+  ch->channel = channel;
 
-  RETVAL = ch;
+  RETVAL = ch->channel;
 }
 OUTPUT:
   RETVAL
 
 int
-rabbitmq_close(channel)
-  RabbitMQ_Channel *channel
+rabbitmq_close(ch)
+  RabbitMQ_Channel *ch
 PREINIT:
-  amqp_rpc_reply_t amqp_rpc_reply;
+  amqp_rpc_reply_t rpc_reply;
 CODE:
 {
-  amqp_channel_close(channel->conn, channel->channel, AMQP_REPLY_SUCCESS);
-  amqp_rpc_reply = amqp_get_rpc_reply(channel->conn);
-  if (amqp_rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
+  amqp_channel_close(ch->conn, ch->channel, AMQP_REPLY_SUCCESS);
+  rpc_reply = amqp_get_rpc_reply(ch->conn);
+  if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
     Perl_croak(aTHX_ "Cannot close channel");
 
-  RETVAL = amqp_rpc_reply.reply_type;
+  RETVAL = rpc_reply.reply_type;
 }
 OUTPUT:
   RETVAL
