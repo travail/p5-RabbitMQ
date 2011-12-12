@@ -1,4 +1,5 @@
 use Test::More;
+use strict;
 use Data::Dumper;
 
 use_ok('RabbitMQ');
@@ -18,6 +19,7 @@ my $sockfd   = $mq->connect(
         vhost    => $vhost,
     }
 );
+
 my $channel = 5532;
 my $ch = eval { $mq->channel_open($channel) };
 is( ref $ch, "RabbitMQ::Channel", "Created RabbitMQ::Channel object" );
@@ -28,33 +30,31 @@ my $declared_qname = eval {
     $ch->queue_declare( $qname,
         { passive => 0, durable => 0, exclusive => 0, auto_delete => 1 } );
 };
-is( $declared_qname, $qname, "Declared queue as $declared_qname" );
-my $res = eval {
-    $ch->basic_publish(
-        {
-            exchange   => '',
-            routingkey => $qname,
-            body       => 'hello world',
-            props      => {
-                content_type     => 'text/plain',
-                content_encoding => 'UTF-8',
-                correlation_id   => '123',
-                reply_to         => 'reply_to',
-                expiration       => '3600',
-                message_id       => '10',
-                type             => 'type',
-                user_id          => 'guest',
-                app_id           => 'app_id',
-                delivery_mode    => 2,
-                prioriry         => 1,
-                timestamp        => time,
-            },
-            mandatory => 0,
-            immediate => 0,
-        }
-    );
-};
-is($res, 0, 'Published a message');
+is( $declared_qname, $qname, "Declared a queue as $declared_qname" );
+
+# Test for declaring q queue which is aleady exists with settting 1 to passive
+{
+    local $@;
+    $declared_qname = eval {
+        $ch->queue_declare( $qname,
+            { passive => 1, durable => 1, exclusive => 0, auto_delete => 1 }
+        );
+    };
+    is( $declared_qname, $qname,
+        "Declared an existing queue as $declared_qname" );
+}
+
+# Test for declaring a queue which is already exists
+{
+    local $@;
+    $declared_qname = eval {
+        $ch->queue_declare( $qname,
+            { passive => 0, durable => 1, exclusive => 0, autu_delete => 1 }
+        );
+    };
+    isnt( $@, '', "Could not declare a queue $qname" );
+}
+
 is( $mq->channel_close($channel), 1, "Closed channel $channel" );
 is( $mq->disconnect, 0, "Disconnected to $host:$port" );
 
