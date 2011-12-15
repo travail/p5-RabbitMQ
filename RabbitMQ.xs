@@ -174,9 +174,9 @@ OUTPUT:
   RETVAL
 
 char *
-rabbitmq_queue_declare(ch, qname, opts = NULL)
+rabbitmq_queue_declare(ch, queue, opts = NULL)
   RabbitMQ_Channel *ch
-  char *qname
+  char *queue
   HV   *opts
 PREINIT:
   amqp_rpc_reply_t         rpc_reply;
@@ -186,12 +186,12 @@ PREINIT:
   amqp_boolean_t exclusive   = 0;
   amqp_boolean_t auto_delete = 1;
   amqp_table_t args    = AMQP_EMPTY_TABLE;
-  amqp_bytes_t qname_b = AMQP_EMPTY_BYTES;
+  amqp_bytes_t queue_b = AMQP_EMPTY_BYTES;
   SV **svp;
 CODE:
 {
-  if (qname && strcmp(qname, ""))
-    qname_b = amqp_cstring_bytes(qname);
+  if (queue && strcmp(queue, ""))
+    queue_b = amqp_cstring_bytes(queue);
   if ((svp = hv_fetch(opts, "passive", 7, 0)) != NULL && SvIOK(*svp))
     passive = (amqp_boolean_t) SvIV(*svp);
   if ((svp = hv_fetch(opts, "durable", 7, 0)) != NULL && SvIOK(*svp))
@@ -201,13 +201,48 @@ CODE:
   if ((svp = hv_fetch(opts, "auto_delete", 11, 1)) != NULL && SvIOK(*svp))
     auto_delete = (amqp_boolean_t) SvIV(*svp);
 
-  queue_declare_ok = amqp_queue_declare(ch->conn, ch->channel, qname_b,
+  queue_declare_ok = amqp_queue_declare(ch->conn, ch->channel, queue_b,
                                         passive, durable, exclusive, auto_delete, args);
   rpc_reply = amqp_get_rpc_reply(ch->conn);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Cannot declare queue");
+    Perl_croak(aTHX_ "Cannot declare queue: %s", queue);
 
-  RETVAL = qname;
+  RETVAL = queue;
+}
+OUTPUT:
+  RETVAL
+
+char *
+rabbitmq_queue_delete(ch, queue, opts)
+  RabbitMQ_Channel *ch
+  char *queue
+  HV   *opts
+PREINIT:
+  amqp_rpc_reply_t        rpc_reply;
+  amqp_queue_delete_ok_t *queue_delete_ok;
+  amqp_boolean_t if_unused = 0;
+  amqp_boolean_t if_empty  = 0;
+  amqp_boolean_t nowait    = 0;
+  amqp_bytes_t   queue_b   = AMWP_EMPTY_BYTES;
+  SV **svp;
+CODE:
+{
+  if (queue && strcmp(queue, ""))
+    queue_b = amqp_cstring_bytes(queue);
+  if ((svp = hv_fetch(opts, "is_unused", 9, 0)) != NULL && SvIOK(*svp))
+    if_unused = (amqp_boolean_t) SvIV(*svp);
+  if ((svp = hv_fetch(opts, "if_empty", 8, 0)) != NULL && SvIOK(*svp))
+    if_empty = (amqp_boolean_t) SvIV(*svp);
+  if ((svp = hv_fetch(opts, "nowait", 6, 0)) != NULL && SvIOK(*svp))
+    nowait = SvIV(*svp);
+
+  queue_delete_ok = amqp_queue_delete(ch->conn, ch->channel,
+                                      queue_b, if_unused, if_empty);
+  rpc_reply = amqp_get_rpc_reply(ch->conn);
+  if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
+    Perl_croak(aTHX_ "Cannot delete queue: %s", queue);
+
+  RETVAL = queue;
 }
 OUTPUT:
   RETVAL
@@ -226,7 +261,7 @@ PREINIT:
   amqp_boolean_t internal    = 0;
   amqp_boolean_t nowait      = 0;
   amqp_table_t   args        = AMQP_EMPTY_TABLE;
-  amqp_bytes_t   exchange_b;
+  amqp_bytes_t   exchange_b  = AMQP_EMPTY_BYTES;
   amqp_bytes_t   type_b;
   SV **svp;
   STRLEN len;
@@ -261,9 +296,9 @@ exchange_delete(ch, exchange, opts)
   HV   *opts
 PREINIT:
   amqp_rpc_reply_t rpc_reply;
-  amqp_bytes_t   exchange_b;
-  amqp_boolean_t if_unused = 1;
-  amqp_boolean_t no_wait   = 0;
+  amqp_bytes_t   exchange_b = AMQP_EMPTY_BYTES;
+  amqp_boolean_t if_unused  = 1;
+  amqp_boolean_t no_wait    = 0;
   SV **svp;
   STRLEN len;
 CODE:
