@@ -223,7 +223,7 @@ PREINIT:
   amqp_boolean_t if_unused = 0;
   amqp_boolean_t if_empty  = 0;
   amqp_boolean_t nowait    = 0;
-  amqp_bytes_t   queue_b   = AMWP_EMPTY_BYTES;
+  amqp_bytes_t   queue_b   = AMQP_EMPTY_BYTES;
   SV **svp;
 CODE:
 {

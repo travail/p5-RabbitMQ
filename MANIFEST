@@ -10,8 +10,9 @@ README
 t/00.load.t
 t/01.connect.t
 t/02.channel_open.t
-t/03.queue_declare.t
+t/03.queue.t
 t/04.basic_publish.t
+t/05.exchange.t
 typemap
 xt/pod-coverage.t
 xt/pod.t
