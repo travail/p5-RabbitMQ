@@ -174,8 +174,8 @@ OUTPUT:
   RETVAL
 
 char *
-rabbitmq_queue_declare(channel, qname, opts = NULL)
-  RabbitMQ_Channel *channel
+rabbitmq_queue_declare(ch, qname, opts = NULL)
+  RabbitMQ_Channel *ch
   char *qname
   HV   *opts
 PREINIT:
@@ -201,13 +201,86 @@ CODE:
   if ((svp = hv_fetch(opts, "auto_delete", 11, 1)) != NULL && SvIOK(*svp))
     auto_delete = (amqp_boolean_t) SvIV(*svp);
 
-  queue_declare_ok = amqp_queue_declare(channel->conn, channel->channel, qname_b,
+  queue_declare_ok = amqp_queue_declare(ch->conn, ch->channel, qname_b,
                                         passive, durable, exclusive, auto_delete, args);
-  rpc_reply = amqp_get_rpc_reply(channel->conn);
+  rpc_reply = amqp_get_rpc_reply(ch->conn);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
     Perl_croak(aTHX_ "Cannot declare queue");
 
   RETVAL = qname;
+}
+OUTPUT:
+  RETVAL
+
+char *
+rabbitmq_exchange_declare(ch, exchange, opts)
+  RabbitMQ_Channel *ch
+  char *exchange
+  HV   *opts
+PREINIT:
+  amqp_rpc_reply_t rpc_reply;
+  char *type = "direct";
+  amqp_boolean_t passive     = 0;
+  amqp_boolean_t durable     = 0;
+  amqp_boolean_t auto_delete = 0;
+  amqp_boolean_t internal    = 0;
+  amqp_boolean_t nowait      = 0;
+  amqp_table_t   args        = AMQP_EMPTY_TABLE;
+  amqp_bytes_t   exchange_b;
+  amqp_bytes_t   type_b;
+  SV **svp;
+  STRLEN len;
+CODE:
+{
+  if (exchange && strcmp(exchange, ""))
+    exchange_b = amqp_cstring_bytes(exchange);
+  if ((svp = hv_fetch(opts, "type", 4, 0)) != NULL && SvPOK(*svp)) {
+    type   = SvPV(*svp, len);
+    type_b = amqp_cstring_bytes(type);
+  }
+  if ((svp = hv_fetch(opts, "passive", 7, 0)) != NULL && SvIOK(*svp))
+    passive = (amqp_boolean_t) SvIV(*svp);
+  if ((svp = hv_fetch(opts, "durable", 7, 0)) != NULL && SvIOK(*svp))
+    durable = (amqp_boolean_t) SvIV(*svp);
+
+  amqp_exchange_declare(ch->conn, ch->channel, exchange_b, type_b,
+                        passive, durable, args);
+  rpc_reply = amqp_get_rpc_reply(ch->conn);
+  if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
+    Perl_croak(aTHX_ "Cannot decahre an exchange: %s", exchange);
+
+  RETVAL = exchange;
+}
+OUTPUT:
+  RETVAL
+
+char *
+exchange_delete(ch, exchange, opts)
+  RabbitMQ_Channel *ch
+  char *exchange
+  HV   *opts
+PREINIT:
+  amqp_rpc_reply_t rpc_reply;
+  amqp_bytes_t   exchange_b;
+  amqp_boolean_t if_unused = 1;
+  amqp_boolean_t no_wait   = 0;
+  SV **svp;
+  STRLEN len;
+CODE:
+{
+  if (exchange && strcmp(exchange, ""))
+    exchange_b = amqp_cstring_bytes(exchange);
+  if ((svp = hv_fetch(opts, "if_unused", 6, 0)) != NULL && SvIOK(*svp))
+    if_unused = (amqp_boolean_t) SvIV(*svp);
+  if ((svp = hv_fetch(opts, "no_wait", 7, 0)) != NULL && SvIOK(*svp))
+    no_wait = (amqp_boolean_t) SvIV(*svp);
+
+  amqp_exchange_delete(ch->conn, ch->channel, exchange_b, if_unused);
+  rpc_reply = amqp_get_rpc_reply(ch->conn);
+  if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
+    Perl_croak(aTHX_ "Cannot delete an exchange: %s", exchange);
+
+  RETVAL = exchange;
 }
 OUTPUT:
   RETVAL
