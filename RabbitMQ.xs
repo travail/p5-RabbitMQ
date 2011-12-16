@@ -173,7 +173,7 @@ CODE:
 OUTPUT:
   RETVAL
 
-char *
+HV *
 rabbitmq_queue_declare(ch, queue, opts = NULL)
   RabbitMQ_Channel *ch
   char *queue
@@ -188,6 +188,7 @@ PREINIT:
   amqp_table_t args    = AMQP_EMPTY_TABLE;
   amqp_bytes_t queue_b = AMQP_EMPTY_BYTES;
   SV **svp;
+  HV  *retval;
 CODE:
 {
   if (queue && strcmp(queue, ""))
@@ -202,12 +203,19 @@ CODE:
     auto_delete = (amqp_boolean_t) SvIV(*svp);
 
   queue_declare_ok = amqp_queue_declare(ch->conn, ch->channel, queue_b,
-                                        passive, durable, exclusive, auto_delete, args);
+                                        passive, durable,
+                                        exclusive, auto_delete, args);
   rpc_reply = amqp_get_rpc_reply(ch->conn);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
     Perl_croak(aTHX_ "Cannot declare queue: %s", queue);
 
-  RETVAL = queue;
+  retval = newHV();
+  (HV *) sv_2mortal((SV *) retval);
+  hv_store(retval, "queue", 5, newSVpvn(queue_declare_ok->queue.bytes, queue_declare_ok->queue.len), 0);
+  hv_store(retval, "message_count", 13, newSVuv(queue_declare_ok->message_count), 0);
+  hv_store(retval, "consumer_count", 14, newSVuv(queue_declare_ok->consumer_count), 0);
+
+  RETVAL = retval;
 }
 OUTPUT:
   RETVAL

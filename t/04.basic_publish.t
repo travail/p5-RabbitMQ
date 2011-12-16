@@ -1,6 +1,5 @@
 use Test::More;
 use strict;
-use Data::Dumper;
 
 use_ok('RabbitMQ');
 
@@ -22,19 +21,19 @@ my $sockfd   = $mq->connect(
 
 my $channel = 5532;
 my $ch = eval { $mq->channel_open($channel) };
-is( ref $ch, "RabbitMQ::Channel", "Created RabbitMQ::Channel object" );
+isa_ok( $ch, "RabbitMQ::Channel", "Created RabbitMQ::Channel object" );
 is( $ch->channel, $channel, "Opened channel $channel" );
 
-my $qname          = 'task_queue';
-my $declared_qname = $ch->queue_declare( $qname,
+my $queue          = 'task_queue';
+my $declared_queue = $ch->queue_declare( $queue,
     { passive => 0, durable => 0, exclusive => 0, auto_delete => 1 } );
-is( $declared_qname, $qname, "Declared a queue as $declared_qname" );
+is( $declared_queue->{queue}, $queue, "Declared a queue as " . $declared_queue->{queue} );
 
 my $res = eval {
     $ch->basic_publish(
         {
             exchange   => '',
-            routingkey => $qname,
+            routingkey => $queue,
             body       => 'hello world',
             props      => {
                 content_type     => 'text/plain',
@@ -55,6 +54,7 @@ my $res = eval {
         }
     );
 };
+
 is( $res, 0, 'Published a message' );
 is( $mq->channel_close($channel), 1, "Closed channel $channel" );
 is( $mq->disconnect, 0, "Disconnected to $host:$port" );
