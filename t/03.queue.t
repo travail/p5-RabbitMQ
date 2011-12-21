@@ -29,7 +29,7 @@ is( $ch->channel, $channel, "Opened channel $channel" );
 {
     my $declared_queue = eval {
         $ch->queue_declare( $queue,
-            { passive => 0, durable => 0, exclusive => 0, auto_delete => 1 }
+            { passive => 0, durable => 0, exclusive => 0, auto_delete => 0 }
         );
     };
     is( $declared_queue->{queue},
@@ -48,15 +48,13 @@ is( $ch->channel, $channel, "Opened channel $channel" );
         "Declared an existing queue as " . $declared_queue->{queue} );
 }
 
-# Test for declaring a queue which is already exists
+# Test for deleting a non queue
 {
     local $@;
-    my $declared_queue = eval {
-        $ch->queue_declare( $queue,
-            { passive => 0, durable => 1, exclusive => 0, autu_delete => 1 }
-        );
+    my $deleted_queue = eval {
+        $ch->queue_delete( $queue, { if_unused => 0, if_empty => 0 } );
     };
-    isnt( $@, '', "Could not declare a queue $queue" );
+    is( $deleted_queue, $queue, "Deleted a queue $deleted_queue" );
 }
 
 is( $mq->channel_close($channel), 1, "Closed channel $channel" );

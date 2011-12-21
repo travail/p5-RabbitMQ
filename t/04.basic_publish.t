@@ -24,9 +24,9 @@ my $ch = eval { $mq->channel_open($channel) };
 isa_ok( $ch, "RabbitMQ::Channel", "Created RabbitMQ::Channel object" );
 is( $ch->channel, $channel, "Opened channel $channel" );
 
-my $queue          = 'task_queue';
+my $queue          = 'basic_publish';
 my $declared_queue = $ch->queue_declare( $queue,
-    { passive => 0, durable => 0, exclusive => 0, auto_delete => 1 } );
+    { passive => 0, durable => 0, exclusive => 0, auto_delete => 0 } );
 is( $declared_queue->{queue}, $queue, "Declared a queue as " . $declared_queue->{queue} );
 
 my $res = eval {
@@ -54,6 +54,10 @@ my $res = eval {
         }
     );
 };
+
+# Test for deleting a queue
+my $deleted_queue = $ch->queue_delete( $queue, {} );
+is( $deleted_queue, $queue, "Deleted a queue $deleted_queue" );
 
 is( $res, 0, 'Published a message' );
 is( $mq->channel_close($channel), 1, "Closed channel $channel" );
