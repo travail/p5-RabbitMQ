@@ -435,3 +435,44 @@ CODE:
 }
 OUTPUT:
   RETVAL
+
+SV *
+rabbitmq_basic_consume(ch, queue, opts)
+  RabbitMQ_Channel *ch
+  char *queue
+  HV *opts
+PREINIT:
+  amqp_rpc_reply_t rpc_reply;
+  amqp_basic_consume_ok_t *basic_consume_ok;
+  amqp_bytes_t   queue_b        = AMQP_EMPTY_BYTES;
+  amqp_bytes_t   consumer_tag_b = AMQP_EMPTY_BYTES;
+  amqp_boolean_t no_local  = 0;
+  amqp_boolean_t no_ack    = 0;
+  amqp_boolean_t exclusive = 0;
+  amqp_table_t   args      = AMQP_EMPTY_TABLE;
+  SV **svp;
+  STRLEN len;
+CODE:
+{
+  if (queue && strcmp(queue, ""))
+    queue_b = amqp_cstring_bytes(queue);
+  if ((svp = hv_fetch(opts, "consumer_tag", 12, 0)) != NULL && SvPOK(*svp))
+    consumer_tag_b = amqp_cstring_bytes(SvPV(*svp, len));
+  if ((svp = hv_fetch(opts, "no_local", 8, 0)) != NULL && SvIOK(*svp))
+    no_local = (amqp_boolean_t) SvIV(*svp);
+  if ((svp = hv_fetch(opts, "no_ack", 6, 0)) != NULL && SvIOK(*svp))
+    no_ack = (amqp_boolean_t) SvIV(*svp);
+  if ((svp = hv_fetch(opts, "exclusive", 9, 0)) != NULL && SvIOK(*svp))
+    exclusive = (amqp_boolean_t) SvIV(*svp);
+
+  basic_consume_ok = amqp_basic_consume(ch->conn, ch->channel, queue_b, consumer_tag_b,
+                                        no_local, no_ack, exclusive, args);
+  rpc_reply = amqp_get_rpc_reply(ch->conn);
+  if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
+    Perl_croak(aTHX_ "Cannot consume messages from %s", queue);
+
+  RETVAL = newSVpvn((char *) basic_consume_ok->consumer_tag.bytes,
+                    (int) basic_consume_ok->consumer_tag.len);
+}
+OUTPUT:
+  RETVAL
