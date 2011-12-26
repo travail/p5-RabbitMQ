@@ -13,6 +13,7 @@ t/02.channel_open.t
 t/03.queue.t
 t/04.basic_publish.t
 t/05.exchange.t
+t/06.basic_consume.t
 typemap
 xt/pod-coverage.t
 xt/pod.t
