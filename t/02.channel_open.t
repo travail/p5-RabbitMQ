@@ -55,14 +55,6 @@ is( $mq->channel_close($channel), 1, "Closed channel $channel" );
     isnt( $@, '', "Could not open a channel with string $channel" );
 }
 
-# Test for closing a channel which is not been opend
-{
-    local $@;
-    $channel = 5532;
-    eval { $mq->channel_close($channel) };
-    isnt( $@, '', "Could not close a channel which is not opened $channel" );
-}
-
 is( $mq->disconnect, 0, "Disconnected to $host:$port" );
 
 done_testing;

@@ -3,7 +3,8 @@
 #include "XSUB.h"
 #include "ppport.h"
 
-#include "rabbitmq.h"
+#include <amqp.h>
+#include <amqp_framing.h>
 
 #define int_from_hv(hv,name) \
  do { SV **v; if (NULL != (v = hv_fetch(hv, #name, strlen(#name), 0))) name = SvIV(*v); } while(0)
@@ -11,6 +12,18 @@
  do { SV **v; if (NULL != (v = hv_fetch(hv, #name, strlen(#name), 0))) name = SvNV(*v); } while(0)
 #define str_from_hv(hv,name) \
  do { SV **v; if (NULL != (v = hv_fetch(hv, #name, strlen(#name), 0))) name = SvPV_nolen(*v); } while(0)
+
+typedef struct {
+  amqp_connection_state_t conn;
+} RabbitMQ;
+
+typedef struct {
+  amqp_connection_state_t conn;
+  int channel;
+} RabbitMQ_Channel;
+
+typedef struct {
+} RabbitMQ_Queue;
 
 MODULE = RabbitMQ PACKAGE = RabbitMQ PREFIX = rabbitmq_
 
@@ -56,11 +69,11 @@ CODE:
   int_from_hv(args, max_frame);
   int_from_hv(args, heartbeat);
 
-  sockfd = rabbitmq_open_socket(host, port);
+  sockfd = amqp_open_socket(host, port);
   if (sockfd < 0)
     Perl_croak(aTHX_ "Cannot open socket");
-  rabbitmq_set_sockfd(mq->conn, sockfd);
-  rpc_reply = rabbitmq_login(mq->conn, vhost, max_channel, max_frame,
+  amqp_set_sockfd(mq->conn, sockfd);
+  rpc_reply = amqp_login(mq->conn, vhost, max_channel, max_frame,
                                   heartbeat, AMQP_SASL_METHOD_PLAIN, user, password);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
     Perl_croak(aTHX_ "Connot login to rabbitmq-server");
@@ -73,6 +86,19 @@ OUTPUT:
 int
 rabbitmq_disconnect(mq)
   RabbitMQ *mq;
+PREINIT:
+  amqp_rpc_reply_t rpc_reply;
+CODE:
+{
+  rpc_reply = amqp_connection_close(mq->conn, AMQP_REPLY_SUCCESS);
+  if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
+    Perl_croak(aTHX_ "Cannot disconnect");
+
+  RETVAL = amqp_destroy_connection(mq->conn);
+  free(mq);
+}
+OUTPUT:
+  RETVAL
 
 RabbitMQ_Channel *
 rabbitmq_channel_open(mq, sv_ch)
