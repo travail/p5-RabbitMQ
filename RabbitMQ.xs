@@ -6,13 +6,6 @@
 #include <amqp.h>
 #include <amqp_framing.h>
 
-#define int_from_hv(hv,name) \
- do { SV **v; if (NULL != (v = hv_fetch(hv, #name, strlen(#name), 0))) name = SvIV(*v); } while(0)
-#define double_from_hv(hv,name) \
- do { SV **v; if (NULL != (v = hv_fetch(hv, #name, strlen(#name), 0))) name = SvNV(*v); } while(0)
-#define str_from_hv(hv,name) \
- do { SV **v; if (NULL != (v = hv_fetch(hv, #name, strlen(#name), 0))) name = SvPV_nolen(*v); } while(0)
-
 typedef struct {
   amqp_connection_state_t conn;
 } RabbitMQ;
@@ -57,17 +50,27 @@ PREINIT:
   int    max_channel = 0;
   int    max_frame   = 131072;
   int    heartbeat   = 0;
+  SV   **svp;
+  STRLEN len;
   amqp_rpc_reply_t rpc_reply;
 CODE:
 {
-  str_from_hv(args, host);
-  int_from_hv(args, port);
-  str_from_hv(args, user);
-  str_from_hv(args, password);
-  str_from_hv(args, vhost);
-  int_from_hv(args, max_channel);
-  int_from_hv(args, max_frame);
-  int_from_hv(args, heartbeat);
+  if ((svp = hv_fetch(args, "host", 4, 0)) != NULL && SvPOK(*svp))
+    host = SvPV(*svp, len);
+  if ((svp = hv_fetch(args, "port", 4, 0)) != NULL && SvIOK(*svp))
+    port = SvIV(*svp);
+  if ((svp = hv_fetch(args, "user", 4, 0)) != NULL && SvPOK(*svp))
+    user = SvPV(*svp, len);
+  if ((svp = hv_fetch(args, "password", 8, 0)) != NULL && SvPOK(*svp))
+    password = SvPV(*svp, len);
+  if ((svp = hv_fetch(args, "vhost", 5, 0)) != NULL && SvPOK(*svp))
+    vhost = SvPV(*svp, len);
+  if ((svp = hv_fetch(args, "max_channel", 11, 0)) != NULL && SvIOK(*svp))
+    max_channel = SvIV(*svp);
+  if ((svp = hv_fetch(args, "max_frame", 9, 0)) != NULL && SvIOK(*svp))
+    max_frame = SvIV(*svp);
+  if ((svp = hv_fetch(args, "heartbeat", 9, 0)) != NULL && SvIOK(*svp))
+    heartbeat = SvIV(*svp);
 
   sockfd = amqp_open_socket(host, port);
   if (sockfd < 0)
