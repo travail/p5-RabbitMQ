@@ -54,7 +54,7 @@ is( $ch->channel, $channel, "Opened channel $channel" );
     my $deleted_queue = eval {
         $ch->queue_delete( $queue, { if_unused => 0, if_empty => 0 } );
     };
-    is( $deleted_queue, $queue, "Deleted a queue $deleted_queue" );
+    is( $deleted_queue->{queue}, $queue, "Deleted a queue $deleted_queue" );
 }
 
 is( $mq->channel_close($channel), 1, "Closed channel $channel" );

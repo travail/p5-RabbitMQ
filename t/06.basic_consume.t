@@ -65,7 +65,7 @@ my $queue = 'basic_consume';
 {
     local $@;
     my $deleted_queue = $ch->queue_delete( $queue, {} );
-    is( $deleted_queue, $queue, "Deleted a queue $deleted_queue" );
+    is( $deleted_queue->{queue}, $queue, "Deleted a queue $deleted_queue" );
 }
 
 is( $mq->channel_close($channel), 1, "Closed a channel $channel" );

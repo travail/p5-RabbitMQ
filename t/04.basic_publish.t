@@ -57,7 +57,7 @@ my $res = eval {
 
 # Test for deleting a queue
 my $deleted_queue = $ch->queue_delete( $queue, {} );
-is( $deleted_queue, $queue, "Deleted a queue $deleted_queue" );
+is( $deleted_queue->{queue}, $queue, "Deleted a queue $deleted_queue" );
 
 is( $res, 0, 'Published a message' );
 is( $mq->channel_close($channel), 1, "Closed channel $channel" );

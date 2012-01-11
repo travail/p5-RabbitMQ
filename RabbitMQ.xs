@@ -77,7 +77,7 @@ CODE:
     Perl_croak(aTHX_ "Cannot open socket");
   amqp_set_sockfd(mq->conn, sockfd);
   rpc_reply = amqp_login(mq->conn, vhost, max_channel, max_frame,
-                                  heartbeat, AMQP_SASL_METHOD_PLAIN, user, password);
+                         heartbeat, AMQP_SASL_METHOD_PLAIN, user, password);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
     Perl_croak(aTHX_ "Connot login to rabbitmq-server");
 
@@ -249,7 +249,7 @@ CODE:
 OUTPUT:
   RETVAL
 
-char *
+HV *
 rabbitmq_queue_delete(ch, queue, opts)
   RabbitMQ_Channel *ch
   char *queue
@@ -279,7 +279,10 @@ CODE:
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
     Perl_croak(aTHX_ "Cannot delete queue: %s", queue);
 
-  RETVAL = queue;
+  RETVAL = newHV();
+  (HV *) sv_2mortal((SV *) RETVAL);
+  hv_store(RETVAL, "queue", 5, newSVpvn(queue, strlen(queue)), 0);
+  hv_store(RETVAL, "message_count", 13, newSVuv(queue_delete_ok->message_count), 0);
 }
 OUTPUT:
   RETVAL
