@@ -49,7 +49,7 @@ all_from 'lib/RabbitMQ.pm';
 test_requires 'Test::More';
 
 tests 't/*.t';
-#recursive_author_tests('xt');
+recursive_author_tests('xt');
 
 use_ppport;
 cc_warnings;
