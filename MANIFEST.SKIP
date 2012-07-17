@@ -8,3 +8,5 @@
 \.(o|so|bs|inc)$
 ^RabbitMQ\.c
 cover_db
+junit_output.xml
+t/config.pl
