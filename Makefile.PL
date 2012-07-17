@@ -53,8 +53,8 @@ tests 't/*.t';
 
 use_ppport;
 cc_warnings;
-cc_include_paths $opt->{rabbitmq_inc};
-cc_libs "-L" . $opt->{rabbitmq_lib};
+cc_include_paths $opt->{rabbitmq_inc} if $opt->{rabbitmq_inc};
+cc_libs "-L" . $opt->{rabbitmq_lib} if $opt->{rabbitmq_lib};
 cc_libs '-lrabbitmq';
 
 WriteAll;
@@ -66,11 +66,11 @@ sub gen_config {
     open my $fh, '>', $file or die "Could not open file $file: $!";
     print $fh <<EOM;
 \$rabbitmq_config = {
-    user     => $opt->{rabbitmq_user},
-    password => $opt->{rabbitmq_password},
-    host     => $opt->{rabbitmq_host},
+    user     => \'$opt->{rabbitmq_user}\',
+    password => \'$opt->{rabbitmq_password}\',
+    host     => \'$opt->{rabbitmq_host}\',
     port     => $opt->{rabbitmq_port},
-    vhost    => $opt->{rabbitmq_vhost},
+    vhost    => \'$opt->{rabbitmq_vhost}\',
 };
 EOM
 }
