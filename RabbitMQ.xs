@@ -461,8 +461,7 @@ CODE:
   }
 
   result = amqp_basic_publish(ch->conn, ch->channel, exchange_b, routingkey_b,
-                              (amqp_boolean_t) mandatory, (amqp_boolean_t) immediate,
-                              &properties, body_b);
+                              mandatory, immediate, &properties, body_b);
   RETVAL = result;
 }
 OUTPUT:
