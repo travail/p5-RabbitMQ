@@ -7,3 +7,4 @@
 \.(bak|old|tmp)$
 \.(o|so|bs|inc)$
 ^RabbitMQ\.c
+cover_db

@@ -1,6 +1,8 @@
+inc
 blib*
 Makefile
 Makefile.old
+META.yml
 MYMETA.*
 Build
 Build.bat
@@ -15,4 +17,7 @@ pod2htm*.tmp
 *.so
 *~
 *.bs
+ppport.h
 RabbitMQ.c
+junit_output.xml
+t/config.pl
