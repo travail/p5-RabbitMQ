@@ -217,7 +217,6 @@ PREINIT:
   amqp_table_t args    = AMQP_EMPTY_TABLE;
   amqp_bytes_t queue_b = AMQP_EMPTY_BYTES;
   SV **svp;
-  HV  *retval;
 CODE:
 {
   if (queue && strcmp(queue, ""))
@@ -238,13 +237,11 @@ CODE:
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
     Perl_croak(aTHX_ "Cannot declare queue: %s", queue);
 
-  retval = newHV();
-  (HV *) sv_2mortal((SV *) retval);
-  hv_store(retval, "queue", 5, newSVpvn(queue_declare_ok->queue.bytes, queue_declare_ok->queue.len), 0);
-  hv_store(retval, "message_count", 13, newSVuv(queue_declare_ok->message_count), 0);
-  hv_store(retval, "consumer_count", 14, newSVuv(queue_declare_ok->consumer_count), 0);
-
-  RETVAL = retval;
+  RETVAL = newHV();
+  sv_2mortal((SV *) RETVAL);
+  hv_store(RETVAL, "queue", 5, newSVpvn(queue_declare_ok->queue.bytes, queue_declare_ok->queue.len), 0);
+  hv_store(RETVAL, "message_count", 13, newSVuv(queue_declare_ok->message_count), 0);
+  hv_store(RETVAL, "consumer_count", 14, newSVuv(queue_declare_ok->consumer_count), 0);
 }
 OUTPUT:
   RETVAL
@@ -280,7 +277,7 @@ CODE:
     Perl_croak(aTHX_ "Cannot delete queue: %s", queue);
 
   RETVAL = newHV();
-  (HV *) sv_2mortal((SV *) RETVAL);
+  sv_2mortal((SV *) RETVAL);
   hv_store(RETVAL, "queue", 5, newSVpvn(queue, strlen(queue)), 0);
   hv_store(RETVAL, "message_count", 13, newSVuv(queue_delete_ok->message_count), 0);
 }
