@@ -20,4 +20,4 @@ pod2htm*.tmp
 ppport.h
 RabbitMQ.c
 junit_output.xml
-t/config.pl
+t/lib
