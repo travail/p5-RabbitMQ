@@ -32,6 +32,7 @@ my $opt = {
 GetOptions(
     $opt,
     'rabbitmq_lib=s',
+    'rabbitmq_inc=s',
     'rabbitmq_user=s',
     'rabbitmq_password=s',
     'rabbitmq_host=s',
@@ -52,7 +53,7 @@ tests 't/*.t';
 
 use_ppport;
 cc_warnings;
-#cc_include_paths;
+cc_include_paths $opt->{rabbitmq_inc};
 cc_libs "-L" . $opt->{rabbitmq_lib};
 cc_libs '-lrabbitmq';
 
