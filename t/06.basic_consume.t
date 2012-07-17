@@ -1,23 +1,21 @@
 #!/usr/bin/env perl
 
-use Test::More;
 use strict;
+use FindBin ();
+use lib "$FindBin::Bin/lib";
+use Test::More;
+use Test::RabbitMQ::Config;
 
 use_ok('RabbitMQ');
 
-my $host     = '192.168.1.1';
-my $port     = 5672;
-my $user     = 'guest';
-my $password = 'guest';
-my $vhost    = '/';
 my $mq       = RabbitMQ->new;
 my $sockfd   = $mq->connect(
     {
-        host     => $host,
-        port     => $port,
-        user     => $user,
-        password => $password,
-        vhost    => $vhost,
+        host     => HOST,
+        port     => PORT,
+        user     => USER,
+        password => PASSWORD,
+        vhost    => VHOST,
     }
 );
 
@@ -71,6 +69,6 @@ my $queue = 'basic_consume';
 }
 
 is( $mq->channel_close($channel), 1, "Closed a channel $channel" );
-is( $mq->disconnect, 0, "Disconnected to $host:$port" );
+is( $mq->disconnect, 0, "Disconnected to " . HOST . ":" . PORT );
 
 done_testing;

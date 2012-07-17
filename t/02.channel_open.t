@@ -1,25 +1,23 @@
 #!/usr/bin/env perl
 
+use strict;
+use FindBin ();
+use lib "$FindBin::Bin/lib";
 use Test::More;
-use Data::Dumper;
+use Test::RabbitMQ::Config;
 
 use_ok('RabbitMQ');
 
 $SIG{'PIPE'} = "IGNORE";
 
-my $host     = '192.168.1.1';
-my $port     = 5672;
-my $user     = 'guest';
-my $password = 'guest';
-my $vhost    = '/';
 my $mq       = RabbitMQ->new;
 my $sockfd = $mq->connect(
     {
-        host        => $host,
-        port        => $port,
-        user        => $user,
-        password    => $password,
-        vhost       => $vhost,
+        host        => HOST,
+        port        => PORT,
+        user        => USER,
+        password    => PASSWORD,
+        vhost       => VHOST,
         channel_max => 0,
     }
 );
@@ -27,7 +25,7 @@ my $channel = 5532;
 my $ch      = $mq->channel_open($channel);
 
 # Test for opening channel
-is( ref $ch, "RabbitMQ::Channel", "Created RabbitMQ::Channel object" );
+isa_ok( $ch, "RabbitMQ::Channel", "Created RabbitMQ::Channel object" );
 is( $ch->channel, $channel, "Opened channel $channel" );
 is( $mq->channel_close($channel), 1, "Closed channel $channel" );
 
@@ -57,6 +55,6 @@ is( $mq->channel_close($channel), 1, "Closed channel $channel" );
     isnt( $@, '', "Could not open a channel with string $channel" );
 }
 
-is( $mq->disconnect, 0, "Disconnected to $host:$port" );
+is( $mq->disconnect, 0, "Disconnected to " . HOST . ":" . PORT );
 
 done_testing;
