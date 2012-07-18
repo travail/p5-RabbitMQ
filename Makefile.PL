@@ -26,7 +26,7 @@ EOM
 my $opt = {
     rabbitmq_user     => 'guest',
     rabbitmq_password => 'guest',
-    rabbitmq_host     => 'localhost',
+    rabbitmq_host     => 'dev.rabbitmq.com',
     rabbitmq_port     => 5672,
     rabbitmq_vhost    => '/',
 };
