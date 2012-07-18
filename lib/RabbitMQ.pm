@@ -13,7 +13,7 @@ XSLoader::load('RabbitMQ', $VERSION);
 sub new {
     my ( $class, $args ) = @_;
 
-    return $class->xs_new();
+    return RabbitMQ::xs_new();
 }
 
 1;

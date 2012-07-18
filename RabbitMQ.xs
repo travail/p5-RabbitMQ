@@ -23,8 +23,7 @@ MODULE = RabbitMQ PACKAGE = RabbitMQ PREFIX = rabbitmq_
 PROTOTYPES:     DISABLE
 
 RabbitMQ *
-rabbitmq_xs_new(class)
-  char *class;
+rabbitmq_xs_new()
 PREINIT:
   RabbitMQ *mq;
 CODE:
@@ -124,7 +123,7 @@ CODE:
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL) {
     Perl_croak(aTHX_ "Cannot open a channel");
   } else {
-    ch = Newxz(ch, sizeof(ch), RabbitMQ_Channel);
+    Newxz(ch, sizeof(ch), RabbitMQ_Channel);
     ch->conn    = mq->conn;
     ch->channel = channel;
   }
@@ -239,7 +238,7 @@ CODE:
 
   RETVAL = newHV();
   sv_2mortal((SV *) RETVAL);
-  hv_store(RETVAL, "queue", 5, newSVpvn(queue_declare_ok->queue.bytes, queue_declare_ok->queue.len), 0);
+  hv_store(RETVAL, "queue", 5, newSVpvn((const char *) queue_declare_ok->queue.bytes, queue_declare_ok->queue.len), 0);
   hv_store(RETVAL, "message_count", 13, newSVuv(queue_declare_ok->message_count), 0);
   hv_store(RETVAL, "consumer_count", 14, newSVuv(queue_declare_ok->consumer_count), 0);
 }
@@ -294,9 +293,11 @@ PREINIT:
   char *type = "direct";
   amqp_boolean_t passive     = 0;
   amqp_boolean_t durable     = 0;
+/* These options below are not supported by amqp_exchange_declare()
   amqp_boolean_t auto_delete = 0;
   amqp_boolean_t internal    = 0;
   amqp_boolean_t nowait      = 0;
+*/
   amqp_table_t   args        = AMQP_EMPTY_TABLE;
   amqp_bytes_t   exchange_b  = AMQP_EMPTY_BYTES;
   amqp_bytes_t   type_b;
@@ -337,7 +338,6 @@ PREINIT:
   amqp_boolean_t if_unused  = 1;
   amqp_boolean_t no_wait    = 0;
   SV **svp;
-  STRLEN len;
 CODE:
 {
   if (exchange && strcmp(exchange, ""))
