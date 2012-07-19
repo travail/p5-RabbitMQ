@@ -6,6 +6,9 @@
 ^MYMETA\.
 \.(bak|old|tmp)$
 \.(o|so|bs|inc)$
+ppport.h
+xshelper.h
+const-xs.inc
 ^RabbitMQ\.c
 cover_db
 junit_output.xml

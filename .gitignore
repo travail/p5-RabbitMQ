@@ -18,6 +18,8 @@ pod2htm*.tmp
 *~
 *.bs
 ppport.h
+xshelper.h
+const-xs.inc
 RabbitMQ.c
 junit_output.xml
 t/lib

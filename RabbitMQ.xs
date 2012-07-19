@@ -2,6 +2,7 @@
 #include "perl.h"
 #include "XSUB.h"
 #include "ppport.h"
+#include "xshelper.h"
 
 #include <amqp.h>
 #include <amqp_framing.h>
@@ -17,6 +18,10 @@ typedef struct {
 
 typedef struct {
 } RabbitMQ_Queue;
+
+MODULE = RabbitMQ    PACKAGE = RabbitMQ::Constants
+
+INCLUDE: const-xs.inc
 
 MODULE = RabbitMQ PACKAGE = RabbitMQ PREFIX = rabbitmq_
 

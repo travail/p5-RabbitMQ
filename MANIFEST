@@ -1,5 +1,6 @@
 Changes
 inc/Module/Install.pm
+inc/Module/Install/AuthorTests.pm
 inc/Module/Install/Base.pm
 inc/Module/Install/Can.pm
 inc/Module/Install/Fetch.pm
@@ -9,10 +10,11 @@ inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 inc/Module/Install/XSUtil.pm
 lib/RabbitMQ.pm
+lib/RabbitMQ/Channel.pm
+lib/RabbitMQ/Constants.pm
 Makefile.PL
 MANIFEST			This list of files
 META.yml
-ppport.h
 RabbitMQ.xs
 README
 t/00.load.t
