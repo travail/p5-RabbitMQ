@@ -32,10 +32,10 @@ is( $declared_queue->{queue}, $queue, "Declared a queue as " . $declared_queue->
 my $res = eval {
     $ch->basic_publish(
         {
-            exchange   => '',
-            routingkey => $queue,
-            body       => 'hello world',
-            props      => {
+            exchange    => '',
+            routing_key => $queue,
+            body        => 'hello world',
+            props       => {
                 content_type     => 'text/plain',
                 content_encoding => 'UTF-8',
                 correlation_id   => '123',

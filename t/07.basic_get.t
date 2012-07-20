@@ -45,7 +45,7 @@ my $queue = 'basic_get';
 
 # Test for publishing
 my $exchange   = '';
-my $routingkey = $queue;
+my $routing_key = $queue;
 my $body       = 'hello world';
 my $mandatory  = 0;
 my $immediate  = 0;
@@ -68,7 +68,7 @@ my $props      = {
         $ch->basic_publish(
             {
                 exchange   => $exchange,
-                routingkey => $routingkey,
+                routing_key => $routing_key,
                 body       => $body,
                 props      => $props,
                 mandatory  => $mandatory,
@@ -85,7 +85,7 @@ my $props      = {
     my $res = eval { $ch->basic_get( $queue, { no_ack => 1 } ) };
     ok( ref $res, "Got a message with queue $queue" );
     is( $res->{exchange}, $exchange, "The exchange in response is $exchange" );
-    is( $res->{routing_key}, $routingkey, "The routingkey in response is $routingkey" );
+    is( $res->{routing_key}, $routing_key, "The routing_key in response is $routing_key" );
     is( $res->{body}, $body, "The body in response is $body" );
     is( $res->{props}->{content_type}, $props->{content_type},
         "The content_type in response is " . $props->{content_type} );
