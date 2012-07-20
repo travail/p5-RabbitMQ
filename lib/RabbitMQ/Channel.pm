@@ -47,6 +47,8 @@ Blah blah blah.
 
 =head2 basic_consume
 
+=head2 basic_get
+
 =head1 SEE ALSO
 
 Mention other useful documentation such as the documentation of

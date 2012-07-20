@@ -24,6 +24,7 @@ t/03.queue.t
 t/04.basic_publish.t
 t/05.exchange.t
 t/06.basic_consume.t
+t/07.basic_get.t
 typemap
 xt/pod-coverage.t
 xt/pod.t

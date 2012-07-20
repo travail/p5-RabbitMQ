@@ -19,6 +19,130 @@ typedef struct {
 typedef struct {
 } RabbitMQ_Queue;
 
+int rabbitmq_read_frame(HV *RETVAL, amqp_connection_state_t conn, int piggyback)
+{
+  amqp_frame_t frame;
+  amqp_basic_deliver_t *d;
+  amqp_basic_properties_t *p;
+  size_t body_target;
+  size_t body_received;
+  int result;
+
+  result = 0;
+  while (1) {
+    SV *payload;
+    HV *props = newHV();
+
+    if (!piggyback) {
+      amqp_maybe_release_buffers(conn);
+      result = amqp_simple_wait_frame(conn, &frame);
+      if (result <= 0) break;
+      if (frame.frame_type != AMQP_FRAME_METHOD) continue;
+      if (frame.payload.method.id != AMQP_BASIC_DELIVER_METHOD) continue;
+      d = (amqp_basic_deliver_t *) frame.payload.method.decoded;
+      hv_store(RETVAL, "delivery_tag", strlen("delivery_tag"),
+               newSViv(d->delivery_tag), 0);
+      hv_store(RETVAL, "exchange", strlen("exchange"),
+               newSVpvn((const char *) d->exchange.bytes, d->exchange.len), 0);
+      hv_store(RETVAL, "consumer_tag", strlen("consumer_tag"),
+               newSVpvn((const char *) d->consumer_tag.bytes, d->consumer_tag.len), 0);
+      hv_store(RETVAL, "routing_key", strlen("routing_key"),
+               newSVpvn((const char *) d->routing_key.bytes, d->routing_key.len), 0);
+      piggyback = 0;
+    }
+
+    result = amqp_simple_wait_frame(conn, &frame);
+    if (frame.frame_type == AMQP_FRAME_HEARTBEAT) continue;
+    if (result < 0) break;
+    if (frame.frame_type != AMQP_FRAME_HEADER)
+      Perl_croak(aTHX_ "Unexpected header: %d", frame.frame_type);
+
+    hv_store(RETVAL, "props", strlen("props"), newRV_noinc((SV *) props), 0);
+    p = (amqp_basic_properties_t *) frame.payload.properties.decoded;
+    if (p->_flags & AMQP_BASIC_CONTENT_TYPE_FLAG) {
+      hv_store(props, "content_type", strlen("content_type"),
+               newSVpvn((const char *) p->content_type.bytes, p->content_type.len), 0);
+      
+    }
+    if (p->_flags & AMQP_BASIC_CONTENT_ENCODING_FLAG) {
+      hv_store(props, "content_encoding", strlen("content_encoding"),
+               newSVpvn((const char *) p->content_encoding.bytes, p->content_encoding.len), 0);
+    }
+    if (p->_flags & AMQP_BASIC_CORRELATION_ID_FLAG) {
+      hv_store(props, "correlation_id", strlen("correlation_id"),
+               newSVpvn((const char *) p->correlation_id.bytes, p->correlation_id.len), 0);
+    }
+    if (p->_flags & AMQP_BASIC_REPLY_TO_FLAG) {
+      hv_store(props, "reply_to", strlen("reply_to"),
+               newSVpvn((const char *) p->reply_to.bytes, p->reply_to.len), 0);
+    }
+    if (p->_flags & AMQP_BASIC_EXPIRATION_FLAG) {
+      hv_store(props, "expiration", strlen("expiration"),
+               newSVpvn((const char *) p->expiration.bytes, p->expiration.len), 0);
+    }
+    if (p->_flags & AMQP_BASIC_MESSAGE_ID_FLAG) {
+      hv_store(props, "message_id", strlen("message_id"),
+               newSVpvn((const char *) p->message_id.bytes, p->message_id.len), 0);
+    }
+    if (p->_flags & AMQP_BASIC_TYPE_FLAG) {
+      hv_store(props, "type", strlen("type"),
+               newSVpvn((const char *) p->type.bytes, p->type.len), 0);
+    }
+    if (p->_flags & AMQP_BASIC_USER_ID_FLAG) {
+      hv_store(props, "user_id", strlen("user_id"),
+               newSVpvn((const char *) p->user_id.bytes, p->user_id.len), 0);
+    }
+    if (p->_flags & AMQP_BASIC_APP_ID_FLAG) {
+      hv_store(props, "app_id", strlen("app_id"),
+               newSVpvn((const char*) p->app_id.bytes, p->app_id.len), 0);
+    }
+    if (p->_flags & AMQP_BASIC_DELIVERY_MODE_FLAG) {
+      hv_store(props, "delivery_mode", strlen("delivery_mode"),
+               newSViv(p->delivery_mode), 0);
+    }
+    if (p->_flags & AMQP_BASIC_PRIORITY_FLAG) {
+      hv_store(props, "priority", strlen("priority"),
+               newSViv(p->priority), 0);
+    }
+    if (p->_flags & AMQP_BASIC_TIMESTAMP_FLAG) {
+      hv_store(props, "timestamp", strlen("timestamp"),
+               newSViv(p->timestamp), 0);
+    }
+    if (p->_flags & AMQP_BASIC_HEADERS_FLAG) {
+      int i;
+      SV *val;
+      HV *headers = newHV();
+      hv_store(props, "headers", strlen("headers"), newRV_noinc((SV *) headers), 0);
+
+      for (i = 0; i < p->headers.num_entries; i++) {
+      }
+    }
+
+    body_target = frame.payload.properties.body_size;
+    body_received = 0;
+    payload = newSVpvn("", 0);
+    while (body_received < body_target) {
+      result = amqp_simple_wait_frame(conn, &frame);
+      if (result < 0) break;
+      if (frame.frame_type != AMQP_FRAME_BODY)
+        Perl_croak(aTHX_ "Expected body got: %d", frame.frame_type);
+
+      body_received += frame.payload.body_fragment.len;
+      assert(body_received <= body_target);
+      sv_catpvn(payload, (const char *) frame.payload.body_fragment.bytes, frame.payload.body_fragment.len);
+    }
+
+    if (body_received != body_target) {
+      Perl_croak(aTHX_ "");
+    }
+
+    hv_store(RETVAL, "body", strlen("body"), payload, 0);
+    break;
+  }
+
+  return result;
+}
+
 MODULE = RabbitMQ    PACKAGE = RabbitMQ::Constants
 
 INCLUDE: const-xs.inc
@@ -465,6 +589,9 @@ CODE:
     }
   }
 
+  /*
+    librabbitmq does not raise a channel exception if the exchange dose not exist.
+  */
   RETVAL = amqp_basic_publish(ch->conn, ch->channel, exchange_b, routingkey_b,
                               mandatory, immediate, &properties, body_b);
 }
@@ -508,6 +635,59 @@ CODE:
 
   RETVAL = newSVpvn((char *) basic_consume_ok->consumer_tag.bytes,
                     (int) basic_consume_ok->consumer_tag.len);
+}
+OUTPUT:
+  RETVAL
+
+SV *
+rabbitmq_basic_get(ch, queue, opts)
+  RabbitMQ_Channel *ch
+  char *queue
+  HV *opts
+PREINIT:
+  amqp_rpc_reply_t rpc_reply;
+  amqp_bytes_t queue_b = AMQP_EMPTY_BYTES;
+  amqp_boolean_t no_ack = TRUE;
+  SV **svp;
+CODE:
+{
+  if (queue && strcmp(queue, "")) {
+    queue_b = amqp_cstring_bytes(queue);
+  }
+  if ((svp = hv_fetch(opts, "no_ack", 6, 0)) != NULL && SvIOK(*svp)) {
+    no_ack = SvTRUE(*svp);
+  }
+  amqp_maybe_release_buffers(ch->conn);
+  rpc_reply = amqp_basic_get(ch->conn, ch->channel, queue_b, no_ack);
+  if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
+    Perl_croak(aTHX_ "Could not get a message from %s", queue);
+
+  if (rpc_reply.reply.id == AMQP_BASIC_GET_OK_METHOD) {
+    HV *res;
+    amqp_basic_get_ok_t *ok = (amqp_basic_get_ok_t *) rpc_reply.reply.decoded;
+    res = newHV();
+    hv_store(res, "delivery_tag", strlen("delivery_tag"),
+             newSViv(ok->delivery_tag), 0);
+    hv_store(res, "redelivered", strlen("redelivered"),
+             newSViv(ok->redelivered), 0);
+    hv_store(res, "exchange", strlen("exchange"),
+             newSVpvn((const char *) ok->exchange.bytes, ok->exchange.len), 0);
+    hv_store(res, "routing_key", strlen("routing_key"),
+             newSVpvn((const char *) ok->routing_key.bytes, ok->routing_key.len), 0);
+    hv_store(res, "message_count", strlen("message_count"),
+             newSViv(ok->message_count), 0);
+
+    if (amqp_data_in_buffer(ch->conn)) {
+      int rv;
+      rv = rabbitmq_read_frame(res, ch->conn, 1);
+      if (rv < 0)
+        Perl_croak(aTHX_ "Could not read frame");
+    }
+    RETVAL = (SV *) newRV_noinc((SV *) res);
+  }
+  else {
+    RETVAL = &PL_sv_undef;
+  }
 }
 OUTPUT:
   RETVAL
