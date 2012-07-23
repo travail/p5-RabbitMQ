@@ -686,8 +686,33 @@ CODE:
     RETVAL = (SV *) newRV_noinc((SV *) res);
   }
   else {
+    // TODO: warn amqp_method_name(rpc_reply.reply.id) or something
     RETVAL = &PL_sv_undef;
   }
+}
+OUTPUT:
+  RETVAL
+
+int
+rabbitmq_basic_ack(ch, delivery_tag, multiple)
+  RabbitMQ_Channel *ch
+  SV *delivery_tag
+  SV *multiple
+PREINIT:
+  int amqp_delivery_tag = 0;
+  amqp_boolean_t amqp_multiple = FALSE;
+CODE:
+{
+  if (delivery_tag && SvIOK(delivery_tag)) {
+    amqp_delivery_tag = SvIV(delivery_tag);
+  }
+  else {
+    croak("precondition-failed %d: delivery_tag should be non-zero integer", AMQP_PRECONDITION_FAILED);
+  }
+  if (multiple && SvIOK(multiple))
+    amqp_multiple = (amqp_boolean_t) SvTRUE(multiple);
+  
+  RETVAL = amqp_basic_ack(ch->conn, ch->channel, amqp_delivery_tag, amqp_multiple);
 }
 OUTPUT:
   RETVAL

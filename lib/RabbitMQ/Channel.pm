@@ -49,6 +49,8 @@ Blah blah blah.
 
 =head2 basic_get
 
+=head2 basic_ack
+
 =head1 SEE ALSO
 
 Mention other useful documentation such as the documentation of
