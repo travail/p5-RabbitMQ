@@ -26,6 +26,7 @@ t/05.exchange.t
 t/06.basic_consume.t
 t/07.basic_get.t
 t/08.basic_ack.t
+t/09.basic_cancel.t
 typemap
 xt/pod-coverage.t
 xt/pod.t

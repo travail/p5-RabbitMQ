@@ -640,6 +640,37 @@ OUTPUT:
   RETVAL
 
 SV *
+rabbitmq_basic_cancel(ch, consumer_tag, opts)
+  RabbitMQ_Channel *ch
+  char *consumer_tag
+  HV *opts
+PREINIT:
+  amqp_basic_cancel_ok_t *cancel_ok;
+  amqp_bytes_t consumer_tag_b;
+  amqp_boolean_t no_wait = FALSE;
+  SV **svp;
+CODE:
+{
+
+  if (consumer_tag && strcmp(consumer_tag, "")) {
+    consumer_tag_b = amqp_cstring_bytes(consumer_tag);
+  }
+  else {
+    croak("precondition-failed %d: consumer_tag must not be empty", AMQP_PRECONDITION_FAILED);
+  }
+  /* amqp_basic_cancel does not accept the argument no_wait */
+  if ((svp = hv_fetch(opts, "no_wait", strlen("no_wait"), 0)) != NULL && SvIOK(*svp))
+    no_wait = SvTRUE(*svp);
+
+  cancel_ok = amqp_basic_cancel(ch->conn, ch->channel, consumer_tag_b);
+  
+  RETVAL = newSVpvn((char *) cancel_ok->consumer_tag.bytes,
+                    (int) cancel_ok->consumer_tag.len);
+}
+OUTPUT:
+  RETVAL
+
+SV *
 rabbitmq_basic_get(ch, queue, opts)
   RabbitMQ_Channel *ch
   char *queue
@@ -707,6 +738,7 @@ CODE:
     amqp_delivery_tag = SvIV(delivery_tag);
   }
   else {
+    // TODO: Move 'should be' to 'must be'
     croak("precondition-failed %d: delivery_tag should be non-zero integer", AMQP_PRECONDITION_FAILED);
   }
   if (multiple && SvIOK(multiple))

@@ -47,6 +47,8 @@ Blah blah blah.
 
 =head2 basic_consume
 
+=head2 basic_cancel
+
 =head2 basic_get
 
 =head2 basic_ack
