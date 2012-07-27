@@ -55,7 +55,7 @@ int rabbitmq_read_frame(HV *RETVAL, amqp_connection_state_t conn, int piggyback)
     if (frame.frame_type == AMQP_FRAME_HEARTBEAT) continue;
     if (result < 0) break;
     if (frame.frame_type != AMQP_FRAME_HEADER)
-      Perl_croak(aTHX_ "Unexpected header: %d", frame.frame_type);
+      croak("Expected header: %d", frame.frame_type);
 
     hv_store(RETVAL, "props", strlen("props"), newRV_noinc((SV *) props), 0);
     p = (amqp_basic_properties_t *) frame.payload.properties.decoded;
@@ -125,16 +125,16 @@ int rabbitmq_read_frame(HV *RETVAL, amqp_connection_state_t conn, int piggyback)
       result = amqp_simple_wait_frame(conn, &frame);
       if (result < 0) break;
       if (frame.frame_type != AMQP_FRAME_BODY)
-        Perl_croak(aTHX_ "Expected body got: %d", frame.frame_type);
+        croak("Expected body got: %d", frame.frame_type);
 
       body_received += frame.payload.body_fragment.len;
       assert(body_received <= body_target);
       sv_catpvn(payload, (const char *) frame.payload.body_fragment.bytes, frame.payload.body_fragment.len);
     }
 
-    if (body_received != body_target) {
-      Perl_croak(aTHX_ "");
-    }
+    if (body_received != body_target)
+      croak("Expected body size is %d, got %d\n",
+            (int) body_received, (int )body_target);
 
     hv_store(RETVAL, "body", strlen("body"), payload, 0);
     break;
@@ -183,31 +183,31 @@ PREINIT:
   amqp_rpc_reply_t rpc_reply;
 CODE:
 {
-  if ((svp = hv_fetch(args, "host", 4, 0)) != NULL && SvPOK(*svp))
+  if ((svp = hv_fetch(args, "host", strlen("host"), 0)) != NULL && SvPOK(*svp))
     host = SvPV(*svp, len);
-  if ((svp = hv_fetch(args, "port", 4, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(args, "port", strlen("port"), 0)) != NULL && SvIOK(*svp))
     port = SvIV(*svp);
-  if ((svp = hv_fetch(args, "user", 4, 0)) != NULL && SvPOK(*svp))
+  if ((svp = hv_fetch(args, "user", strlen("user"), 0)) != NULL && SvPOK(*svp))
     user = SvPV(*svp, len);
-  if ((svp = hv_fetch(args, "password", 8, 0)) != NULL && SvPOK(*svp))
+  if ((svp = hv_fetch(args, "password", strlen("password"), 0)) != NULL && SvPOK(*svp))
     password = SvPV(*svp, len);
-  if ((svp = hv_fetch(args, "vhost", 5, 0)) != NULL && SvPOK(*svp))
+  if ((svp = hv_fetch(args, "vhost", strlen("vhost"), 0)) != NULL && SvPOK(*svp))
     vhost = SvPV(*svp, len);
-  if ((svp = hv_fetch(args, "max_channel", 11, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(args, "max_channel", strlen("max_channel"), 0)) != NULL && SvIOK(*svp))
     max_channel = SvIV(*svp);
-  if ((svp = hv_fetch(args, "max_frame", 9, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(args, "max_frame", strlen("max_frame"), 0)) != NULL && SvIOK(*svp))
     max_frame = SvIV(*svp);
-  if ((svp = hv_fetch(args, "heartbeat", 9, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(args, "heartbeat", strlen("heartbeat"), 0)) != NULL && SvIOK(*svp))
     heartbeat = SvIV(*svp);
 
   sockfd = amqp_open_socket(host, port);
   if (sockfd < 0)
-    Perl_croak(aTHX_ "Cannot open socket");
+    croak("Could not open socket");
   amqp_set_sockfd(mq->conn, sockfd);
   rpc_reply = amqp_login(mq->conn, vhost, max_channel, max_frame,
                          heartbeat, AMQP_SASL_METHOD_PLAIN, user, password);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Connot login to rabbitmq-server");
+    croak("Could not login to rabbitmq-server");
 
   RETVAL = rpc_reply.reply_type;
 }
@@ -223,7 +223,7 @@ CODE:
 {
   rpc_reply = amqp_connection_close(mq->conn, AMQP_REPLY_SUCCESS);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Cannot disconnect");
+    croak("Could not disconnect");
 
   RETVAL = amqp_destroy_connection(mq->conn);
   free(mq);
@@ -243,15 +243,16 @@ CODE:
 {
   if (SvIOKp(sv_ch)) channel = SvIV(sv_ch);
   if (channel == 0)
-    Perl_croak(aTHX_ "Cannot open a channel");
+    croak("Could not open a channel");
 
   if (!amqp_channel_open(mq->conn, channel))
-    Perl_croak(aTHX_ "Cannot open a channel");
+    croak("Could not open a channel");
 
   rpc_reply = amqp_get_rpc_reply(mq->conn);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL) {
-    Perl_croak(aTHX_ "Cannot open a channel");
-  } else {
+    croak("Could not open a channel");
+  }
+  else {
     Newxz(ch, sizeof(ch), RabbitMQ_Channel);
     ch->conn    = mq->conn;
     ch->channel = channel;
@@ -272,7 +273,7 @@ CODE:
 {
   rpc_reply = amqp_channel_close(mq->conn, channel, AMQP_REPLY_SUCCESS);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Cannot close channel");
+    croak("Could not close channel");
 
   RETVAL = rpc_reply.reply_type;
 }
@@ -304,7 +305,7 @@ CODE:
   amqp_channel_open(ch->conn, channel);
   rpc_reply = amqp_get_rpc_reply(ch->conn);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Cannot open channel");
+    croak("Could not open a channel");
 
   ch->channel = channel;
 
@@ -323,7 +324,7 @@ CODE:
   amqp_channel_close(ch->conn, ch->channel, AMQP_REPLY_SUCCESS);
   rpc_reply = amqp_get_rpc_reply(ch->conn);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Cannot close channel");
+    croak("Could not close channel");
 
   RETVAL = rpc_reply.reply_type;
 }
@@ -349,13 +350,13 @@ CODE:
 {
   if (queue && strcmp(queue, ""))
     queue_b = amqp_cstring_bytes(queue);
-  if ((svp = hv_fetch(opts, "passive", 7, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "passive", strlen("passive"), 0)) != NULL && SvIOK(*svp))
     passive = (amqp_boolean_t) SvIV(*svp);
-  if ((svp = hv_fetch(opts, "durable", 7, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "durable", strlen("durable"), 0)) != NULL && SvIOK(*svp))
     durable = (amqp_boolean_t) SvIV(*svp);
-  if ((svp = hv_fetch(opts, "exclusive", 9, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "exclusive", strlen("exclusive"), 0)) != NULL && SvIOK(*svp))
     exclusive = (amqp_boolean_t) SvIV(*svp);
-  if ((svp = hv_fetch(opts, "auto_delete", 11, 1)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "auto_delete", strlen("auto_delete"), 1)) != NULL && SvIOK(*svp))
     auto_delete = (amqp_boolean_t) SvIV(*svp);
 
   queue_declare_ok = amqp_queue_declare(ch->conn, ch->channel, queue_b,
@@ -363,13 +364,13 @@ CODE:
                                         exclusive, auto_delete, args);
   rpc_reply = amqp_get_rpc_reply(ch->conn);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Cannot declare queue: %s", queue);
+    croak("Could not declare a queue: %s", queue);
 
   RETVAL = newHV();
   sv_2mortal((SV *) RETVAL);
-  hv_store(RETVAL, "queue", 5, newSVpvn((const char *) queue_declare_ok->queue.bytes, queue_declare_ok->queue.len), 0);
-  hv_store(RETVAL, "message_count", 13, newSVuv(queue_declare_ok->message_count), 0);
-  hv_store(RETVAL, "consumer_count", 14, newSVuv(queue_declare_ok->consumer_count), 0);
+  hv_store(RETVAL, "queue", strlen("queue"), newSVpvn((const char *) queue_declare_ok->queue.bytes, queue_declare_ok->queue.len), 0);
+  hv_store(RETVAL, "message_count", strlen("message_count"), newSVuv(queue_declare_ok->message_count), 0);
+  hv_store(RETVAL, "consumer_count", strlen("consumer_count"), newSVuv(queue_declare_ok->consumer_count), 0);
 }
 OUTPUT:
   RETVAL
@@ -384,30 +385,30 @@ PREINIT:
   amqp_queue_delete_ok_t *queue_delete_ok;
   amqp_boolean_t if_unused = 0;
   amqp_boolean_t if_empty  = 0;
-  amqp_boolean_t nowait    = 0;
+  amqp_boolean_t no_wait   = 0;
   amqp_bytes_t   queue_b   = AMQP_EMPTY_BYTES;
   SV **svp;
 CODE:
 {
   if (queue && strcmp(queue, ""))
     queue_b = amqp_cstring_bytes(queue);
-  if ((svp = hv_fetch(opts, "is_unused", 9, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "is_unused", strlen("is_unused"), 0)) != NULL && SvIOK(*svp))
     if_unused = (amqp_boolean_t) SvIV(*svp);
-  if ((svp = hv_fetch(opts, "if_empty", 8, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "if_empty", strlen("if_empty"), 0)) != NULL && SvIOK(*svp))
     if_empty = (amqp_boolean_t) SvIV(*svp);
-  if ((svp = hv_fetch(opts, "nowait", 6, 0)) != NULL && SvIOK(*svp))
-    nowait = SvIV(*svp);
+  if ((svp = hv_fetch(opts, "no_wait", strlen("no_wait"), 0)) != NULL && SvIOK(*svp))
+    no_wait = SvIV(*svp);
 
   queue_delete_ok = amqp_queue_delete(ch->conn, ch->channel,
                                       queue_b, if_unused, if_empty);
   rpc_reply = amqp_get_rpc_reply(ch->conn);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Cannot delete queue: %s", queue);
+    croak("Could not delete a queue: %s", queue);
 
   RETVAL = newHV();
   sv_2mortal((SV *) RETVAL);
-  hv_store(RETVAL, "queue", 5, newSVpvn(queue, strlen(queue)), 0);
-  hv_store(RETVAL, "message_count", 13, newSVuv(queue_delete_ok->message_count), 0);
+  hv_store(RETVAL, "queue", strlen("queue"), newSVpvn(queue, strlen(queue)), 0);
+  hv_store(RETVAL, "message_count", strlen("message_count"), newSVuv(queue_delete_ok->message_count), 0);
 }
 OUTPUT:
   RETVAL
@@ -425,7 +426,7 @@ PREINIT:
 /* These options below are not supported by amqp_exchange_declare()
   amqp_boolean_t auto_delete = 0;
   amqp_boolean_t internal    = 0;
-  amqp_boolean_t nowait      = 0;
+  amqp_boolean_t no_wait     = 0;
 */
   amqp_table_t   args        = AMQP_EMPTY_TABLE;
   amqp_bytes_t   exchange_b  = AMQP_EMPTY_BYTES;
@@ -436,20 +437,20 @@ CODE:
 {
   if (exchange && strcmp(exchange, ""))
     exchange_b = amqp_cstring_bytes(exchange);
-  if ((svp = hv_fetch(opts, "type", 4, 0)) != NULL && SvPOK(*svp)) {
+  if ((svp = hv_fetch(opts, "type", strlen("type"), 0)) != NULL && SvPOK(*svp)) {
     type   = SvPV(*svp, len);
     type_b = amqp_cstring_bytes(type);
   }
-  if ((svp = hv_fetch(opts, "passive", 7, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "passive", strlen("passive"), 0)) != NULL && SvIOK(*svp))
     passive = (amqp_boolean_t) SvIV(*svp);
-  if ((svp = hv_fetch(opts, "durable", 7, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "durable", strlen("durable"), 0)) != NULL && SvIOK(*svp))
     durable = (amqp_boolean_t) SvIV(*svp);
 
   amqp_exchange_declare(ch->conn, ch->channel, exchange_b, type_b,
                         passive, durable, args);
   rpc_reply = amqp_get_rpc_reply(ch->conn);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Cannot decahre an exchange: %s", exchange);
+    croak("Could not decahre an exchange: %s", exchange);
 
   RETVAL = exchange;
 }
@@ -471,15 +472,15 @@ CODE:
 {
   if (exchange && strcmp(exchange, ""))
     exchange_b = amqp_cstring_bytes(exchange);
-  if ((svp = hv_fetch(opts, "if_unused", 6, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "if_unused", strlen("if_unused"), 0)) != NULL && SvIOK(*svp))
     if_unused = (amqp_boolean_t) SvIV(*svp);
-  if ((svp = hv_fetch(opts, "no_wait", 7, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "no_wait", strlen("no_wait"), 0)) != NULL && SvIOK(*svp))
     no_wait = (amqp_boolean_t) SvIV(*svp);
 
   amqp_exchange_delete(ch->conn, ch->channel, exchange_b, if_unused);
   rpc_reply = amqp_get_rpc_reply(ch->conn);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Cannot delete an exchange: %s", exchange);
+    croak("Could not delete an exchange: %s", exchange);
 
   RETVAL = exchange;
 }
@@ -618,20 +619,20 @@ CODE:
 {
   if (queue && strcmp(queue, ""))
     queue_b = amqp_cstring_bytes(queue);
-  if ((svp = hv_fetch(opts, "consumer_tag", 12, 0)) != NULL && SvPOK(*svp))
+  if ((svp = hv_fetch(opts, "consumer_tag", strlen("consumer_tag"), 0)) != NULL && SvPOK(*svp))
     consumer_tag_b = amqp_cstring_bytes(SvPV(*svp, len));
-  if ((svp = hv_fetch(opts, "no_local", 8, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "no_local", strlen("no_local"), 0)) != NULL && SvIOK(*svp))
     no_local = (amqp_boolean_t) SvIV(*svp);
-  if ((svp = hv_fetch(opts, "no_ack", 6, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "no_ack", strlen("no_ack"), 0)) != NULL && SvIOK(*svp))
     no_ack = (amqp_boolean_t) SvIV(*svp);
-  if ((svp = hv_fetch(opts, "exclusive", 9, 0)) != NULL && SvIOK(*svp))
+  if ((svp = hv_fetch(opts, "exclusive", strlen("exclusive"), 0)) != NULL && SvIOK(*svp))
     exclusive = (amqp_boolean_t) SvIV(*svp);
 
   basic_consume_ok = amqp_basic_consume(ch->conn, ch->channel, queue_b, consumer_tag_b,
                                         no_local, no_ack, exclusive, args);
   rpc_reply = amqp_get_rpc_reply(ch->conn);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Cannot consume messages from %s", queue);
+    croak("Could not consume messages from %s", queue);
 
   RETVAL = newSVpvn((char *) basic_consume_ok->consumer_tag.bytes,
                     (int) basic_consume_ok->consumer_tag.len);
@@ -691,7 +692,7 @@ CODE:
   amqp_maybe_release_buffers(ch->conn);
   rpc_reply = amqp_basic_get(ch->conn, ch->channel, queue_b, no_ack);
   if (rpc_reply.reply_type != AMQP_RESPONSE_NORMAL)
-    Perl_croak(aTHX_ "Could not get a message from %s", queue);
+    croak("Could not get a message from %s", queue);
 
   if (rpc_reply.reply.id == AMQP_BASIC_GET_OK_METHOD) {
     HV *res;
@@ -712,7 +713,7 @@ CODE:
       int rv;
       rv = rabbitmq_read_frame(res, ch->conn, 1);
       if (rv < 0)
-        Perl_croak(aTHX_ "Could not read frame");
+        croak("Could not read frame");
     }
     RETVAL = (SV *) newRV_noinc((SV *) res);
   }
